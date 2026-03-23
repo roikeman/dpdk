@@ -1,5 +1,4 @@
-/*
- * SPDX-License-Identifier: BSD-3-Clause
+/* SPDX-License-Identifier: BSD-3-Clause
  * Copyright(c) 2023 Napatech A/S
  */
 
@@ -197,7 +196,7 @@ static int nthw_fpga_rst_nt200a0x_wait_sdc_calibrated(nthw_fpga_t *p_fpga,
 		 * reset DDR and perform calibration retry
 		 */
 		nthw_field_set_flush(p->mp_fld_rst_ddr4);	/* Reset DDR PLL */
-		nt_os_wait_usec(100);
+		nthw_os_wait_usec(100);
 		nthw_field_clr_flush(p->mp_fld_rst_ddr4);
 
 		n_retry_cnt++;
@@ -528,7 +527,16 @@ static int nthw_fpga_rst_nt200a0x_init(struct fpga_info_s *p_fpga_info,
 	nthw_rac_rab_setup(p_fpga_info->mp_nthw_rac);
 
 	res = nthw_fpga_iic_scan(p_fpga, 0, 0);
+	if (res == -1) {
+		NT_LOG(ERR, NTHW, "Failed to init iic instance %d - %d for NT200 (%d)", 0, 0, res);
+		return -1;
+	}
+
 	res = nthw_fpga_iic_scan(p_fpga, 2, 3);
+	if (res == -1) {
+		NT_LOG(ERR, NTHW, "Failed to init iic instance %d - %d for NT200 (%d)", 2, 3, res);
+		return -1;
+	}
 
 	/*
 	 * Detect clock synth model
@@ -566,8 +574,8 @@ static struct rst_nt200a0x_ops rst_nt200a0x_ops = { .nthw_fpga_rst_nt200a0x_init
 			nthw_fpga_rst_nt200a0x_reset
 };
 
-void rst_nt200a0x_ops_init(void)
+void nthw_rst_nt200a0x_ops_init(void)
 {
 	NT_LOG(DBG, NTHW, "RST NT200A0X OPS INIT");
-	register_rst_nt200a0x_ops(&rst_nt200a0x_ops);
+	nthw_reg_rst_nt200a0x_ops(&rst_nt200a0x_ops);
 }

@@ -14,6 +14,7 @@
 #define CPERF_PTEST_TYPE	("ptest")
 #define CPERF_MODEX_LEN		("modex-len")
 #define CPERF_RSA_PRIV_KEYTYPE	("rsa-priv-keytype")
+#define CPERF_RSA_MODLEN	("rsa-modlen")
 #define CPERF_SILENT		("silent")
 #define CPERF_ENABLE_SDAP	("enable-sdap")
 
@@ -93,7 +94,11 @@ enum cperf_op_type {
 	CPERF_IPSEC,
 	CPERF_ASYM_MODEX,
 	CPERF_ASYM_RSA,
+	CPERF_ASYM_SECP192R1,
+	CPERF_ASYM_SECP224R1,
 	CPERF_ASYM_SECP256R1,
+	CPERF_ASYM_SECP384R1,
+	CPERF_ASYM_SECP521R1,
 	CPERF_ASYM_ED25519,
 	CPERF_ASYM_SM2,
 	CPERF_TLS,
@@ -175,12 +180,18 @@ struct cperf_options {
 	uint8_t imix_distribution_count;
 	struct cperf_modex_test_data *modex_data;
 	uint16_t modex_len;
+	struct cperf_ecdsa_test_data *secp192r1_data;
+	struct cperf_ecdsa_test_data *secp224r1_data;
 	struct cperf_ecdsa_test_data *secp256r1_data;
+	struct cperf_ecdsa_test_data *secp384r1_data;
+	struct cperf_ecdsa_test_data *secp521r1_data;
 	struct cperf_eddsa_test_data *eddsa_data;
 	struct cperf_sm2_test_data *sm2_data;
 	enum rte_crypto_asym_op_type asym_op_type;
 	enum rte_crypto_auth_algorithm asym_hash_alg;
 	struct cperf_rsa_test_data *rsa_data;
+	uint16_t rsa_modlen;
+	uint8_t rsa_keytype;
 };
 
 void

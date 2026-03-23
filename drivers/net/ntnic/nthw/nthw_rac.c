@@ -1,5 +1,4 @@
-/*
- * SPDX-License-Identifier: BSD-3-Clause
+/* SPDX-License-Identifier: BSD-3-Clause
  * Copyright(c) 2023 Napatech A/S
  */
 
@@ -92,9 +91,6 @@ int nthw_rac_init(nthw_rac_t *p, nthw_fpga_t *p_fpga, struct fpga_info_s *p_fpga
 
 	if (p->mp_reg_dbg_data)
 		p->mp_fld_dbg_data = nthw_register_query_field(p->mp_reg_dbg_data, RAC_DBG_DATA_D);
-
-	else
-		p->mp_reg_dbg_data = NULL;
 
 	p->mp_reg_rab_ib_data = nthw_module_get_register(p->mp_mod_rac, RAC_RAB_IB_DATA);
 	p->mp_fld_rab_ib_data = nthw_register_get_field(p->mp_reg_rab_ib_data, RAC_RAB_IB_DATA_D);
@@ -265,7 +261,7 @@ static inline int _nthw_rac_wait_for_rab_done(const nthw_rac_t *p, uint32_t addr
 	}
 
 	if (used < word_cnt) {
-		NT_LOG(ERR, NTHW, "%s: Fail rab bus r/w addr=0x%08X used=%x wordcount=%d",
+		NT_LOG(ERR, NTHW, "%s: Fail rab bus r/w addr=0x%08X used=%x wordcount=%" PRIu32 "",
 			p_adapter_id_str, address, used, word_cnt);
 		return -1;
 	}
@@ -329,7 +325,7 @@ int nthw_rac_rab_setup(nthw_rac_t *p)
 
 	const struct fpga_info_s *const p_fpga_info = p->mp_fpga->p_fpga_info;
 	uint32_t n_dma_buf_size = 2L * RAB_DMA_BUF_CNT * sizeof(uint32_t);
-	const size_t align_size = nt_util_align_size(n_dma_buf_size);
+	const size_t align_size = nthw_util_align_size(n_dma_buf_size);
 	int numa_node = p_fpga_info->numa_node;
 	uint64_t dma_addr;
 	uint32_t buf;
@@ -337,10 +333,10 @@ int nthw_rac_rab_setup(nthw_rac_t *p)
 	if (!p->m_dma) {
 		struct nt_dma_s *vfio_dma;
 		/* FPGA needs Page alignment (4K) */
-		vfio_dma = nt_dma_alloc(align_size, 0x1000, numa_node);
+		vfio_dma = nthw_dma_alloc(align_size, 0x1000, numa_node);
 
 		if (vfio_dma == NULL) {
-			NT_LOG(ERR, NTNIC, "nt_dma_alloc failed");
+			NT_LOG(ERR, NTNIC, "nthw_dma_alloc failed");
 			return -1;
 		}
 
@@ -421,7 +417,7 @@ static int nthw_rac_rab_dma_wait(nthw_rac_t *p)
 	uint32_t i;
 
 	for (i = 0; i < RAB_DMA_WAIT; i++) {
-		nt_os_wait_usec_poll(1);
+		nthw_os_wait_usec_poll(1);
 
 		if ((p->m_dma_out_buf[p->m_dma_out_ptr_rd] & completion) == completion)
 			break;
@@ -470,7 +466,8 @@ int nthw_rac_rab_write32_dma(nthw_rac_t *p, nthw_rab_bus_id_t bus_id, uint32_t a
 
 	if (word_cnt == 0 || word_cnt > 256) {
 		NT_LOG(ERR, NTHW,
-			"%s: Failed rab dma write length check - bus: %d addr: 0x%08X wordcount: %d - inBufFree: 0x%08X",
+			"%s: Failed rab dma write length check - bus: %d addr: 0x%08X wordcount: %"
+			PRIu32 " - inBufFree: 0x%08X",
 			p_adapter_id_str, bus_id, address, word_cnt, p->m_in_free);
 		RTE_ASSERT(0);      /* alert developer that something is wrong */
 		return -1;
@@ -509,16 +506,10 @@ int nthw_rac_rab_read32_dma(nthw_rac_t *p, nthw_rab_bus_id_t bus_id, uint32_t ad
 
 	if (word_cnt == 0 || word_cnt > 256) {
 		NT_LOG(ERR, NTHW,
-			"%s: Failed rab dma read length check - bus: %d addr: 0x%08X wordcount: %d - inBufFree: 0x%08X",
+			"%s: Failed rab dma read length check - bus: %d addr: 0x%08X wordcount: %"
+			PRIu32 " - inBufFree: 0x%08X",
 			p_adapter_id_str, bus_id, address, word_cnt, p->m_in_free);
 		RTE_ASSERT(0);      /* alert developer that something is wrong */
-		return -1;
-	}
-
-	if ((word_cnt + 3) > RAB_DMA_BUF_CNT) {
-		NT_LOG(ERR, NTHW,
-			"%s: Failed rab dma read length check - bus: %d addr: 0x%08X wordcount: %d",
-			p_adapter_id_str, bus_id, address, word_cnt);
 		return -1;
 	}
 
@@ -560,19 +551,19 @@ int nthw_rac_rab_write32(nthw_rac_t *p, bool trc, nthw_rab_bus_id_t bus_id, uint
 	int res = 0;
 
 	if (address > (1 << RAB_ADDR_BW)) {
-		NT_LOG(ERR, NTHW, "%s: RAB: Illegal address: value too large %d - max %d",
+		NT_LOG(ERR, NTHW, "%s: RAB: Illegal address: value too large %" PRIu32 " - max %d",
 			p_adapter_id_str, address, (1 << RAB_ADDR_BW));
 		return -1;
 	}
 
 	if (bus_id > (1 << RAB_BUSID_BW)) {
-		NT_LOG(ERR, NTHW, "%s: RAB: Illegal bus id: value too large %d - max %d",
+		NT_LOG(ERR, NTHW, "%s: RAB: Illegal bus id: value too large %" PRIu32 " - max %d",
 			p_adapter_id_str, bus_id, (1 << RAB_BUSID_BW));
 		return -1;
 	}
 
 	if (word_cnt == 0) {
-		NT_LOG(ERR, NTHW, "%s: RAB: Illegal word count: value is zero (%d)",
+		NT_LOG(ERR, NTHW, "%s: RAB: Illegal word count: value is zero (%" PRIu32 ")",
 			p_adapter_id_str, word_cnt);
 		return -1;
 	}
@@ -662,8 +653,8 @@ int nthw_rac_rab_write32(nthw_rac_t *p, bool trc, nthw_rab_bus_id_t bus_id, uint
 			char *tmp_string;
 
 			if (trc) {
-				tmp_string = ntlog_helper_str_alloc("Register::write");
-				ntlog_helper_str_add(tmp_string,
+				tmp_string = nthw_log_helper_str_alloc("Register::write");
+				nthw_log_helper_str_add(tmp_string,
 					"(Dev: NA, Bus: RAB%u, Addr: 0x%08X, Cnt: %d, Data:",
 					bus_id, address, word_cnt);
 			}
@@ -677,13 +668,13 @@ int nthw_rac_rab_write32(nthw_rac_t *p, bool trc, nthw_rab_bus_id_t bus_id, uint
 				}
 
 				if (trc)
-					ntlog_helper_str_add(tmp_string, " 0x%08X", data);
+					nthw_log_helper_str_add(tmp_string, " 0x%08X", data);
 			}
 
 			if (trc) {
-				ntlog_helper_str_add(tmp_string, ")");
+				nthw_log_helper_str_add(tmp_string, ")");
 				NT_LOG(DBG, NTHW, "%s", tmp_string);
-				ntlog_helper_str_free(tmp_string);
+				nthw_log_helper_str_free(tmp_string);
 			}
 		}
 
@@ -747,28 +738,28 @@ int nthw_rac_rab_read32(nthw_rac_t *p, bool trc, nthw_rab_bus_id_t bus_id, uint3
 	rte_spinlock_lock(&p->m_mutex);
 
 	if (address > (1 << RAB_ADDR_BW)) {
-		NT_LOG(ERR, NTHW, "%s: RAB: Illegal address: value too large %d - max %d",
+		NT_LOG(ERR, NTHW, "%s: RAB: Illegal address: value too large %" PRIu32 " - max %d",
 			p_adapter_id_str, address, (1 << RAB_ADDR_BW));
 		res = -1;
 		goto exit_unlock_res;
 	}
 
 	if (bus_id > (1 << RAB_BUSID_BW)) {
-		NT_LOG(ERR, NTHW, "%s: RAB: Illegal bus id: value too large %d - max %d",
+		NT_LOG(ERR, NTHW, "%s: RAB: Illegal bus id: value too large %" PRIu32 " - max %d",
 			p_adapter_id_str, bus_id, (1 << RAB_BUSID_BW));
 		res = -1;
 		goto exit_unlock_res;
 	}
 
 	if (word_cnt == 0) {
-		NT_LOG(ERR, NTHW, "%s: RAB: Illegal word count: value is zero (%d)",
+		NT_LOG(ERR, NTHW, "%s: RAB: Illegal word count: value is zero (%" PRIu32 ")",
 			p_adapter_id_str, word_cnt);
 		res = -1;
 		goto exit_unlock_res;
 	}
 
 	if (word_cnt > (1 << RAB_CNT_BW)) {
-		NT_LOG(ERR, NTHW, "%s: RAB: Illegal word count: value too large %d - max %d",
+		NT_LOG(ERR, NTHW, "%s: RAB: Illegal word count: value too large %" PRIu32 " - max %d",
 			p_adapter_id_str, word_cnt, (1 << RAB_CNT_BW));
 		res = -1;
 		goto exit_unlock_res;
@@ -848,17 +839,17 @@ int nthw_rac_rab_read32(nthw_rac_t *p, bool trc, nthw_rab_bus_id_t bus_id, uint3
 			}
 
 			if (trc) {
-				char *tmp_string = ntlog_helper_str_alloc("Register::read");
-				ntlog_helper_str_add(tmp_string,
+				char *tmp_string = nthw_log_helper_str_alloc("Register::read");
+				nthw_log_helper_str_add(tmp_string,
 					"(Dev: NA, Bus: RAB%u, Addr: 0x%08X, Cnt: %d, Data:",
 					bus_id, address, word_cnt);
 
 				for (i = 0; i < word_cnt; i++)
-					ntlog_helper_str_add(tmp_string, " 0x%08X", p_data[i]);
+					nthw_log_helper_str_add(tmp_string, " 0x%08X", p_data[i]);
 
-				ntlog_helper_str_add(tmp_string, ")");
+				nthw_log_helper_str_add(tmp_string, ")");
 				NT_LOG(DBG, NTHW, "%s", tmp_string);
-				ntlog_helper_str_free(tmp_string);
+				nthw_log_helper_str_free(tmp_string);
 			}
 		}
 
