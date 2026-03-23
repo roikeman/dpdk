@@ -174,7 +174,7 @@ static int lcore_main(void *arg)
 		for (;;) {
         RTE_ETH_FOREACH_DEV(port) {
             struct rte_mbuf *bufs[BURST_SIZE];
-            uint16_t queue_id = lcore_id % rte_lcore_count();
+            uint16_t queue_id = rte_lcore_index(lcore_id);
             uint16_t nb_rx = rte_eth_rx_burst(port, queue_id, bufs, BURST_SIZE);
             if (unlikely(nb_rx == 0)) continue;
 
